@@ -20,11 +20,6 @@ export class EnterpriseDataIntegrationService {
     this.httpClient = this.createHttpClient();
   }
 
-  /**
-   * Fetches data from a given data source.
-   * @param dataSource The data source to fetch data from.
-   * @returns A promise that resolves with the fetched data.
-   */
   async fetchData(dataSource: DataSource): Promise<any[]> {
     switch (dataSource.type) {
       case "database":
@@ -38,12 +33,6 @@ export class EnterpriseDataIntegrationService {
     }
   }
 
-  /**
-   * Transforms the fetched data based on the provided transformation rules.
-   * @param data The data to be transformed.
-   * @param transformationRules The transformation rules to apply.
-   * @returns The transformed data.
-   */
   transformData(
     data: any[],
     transformationRules: DataTransformationRule[],
@@ -58,13 +47,7 @@ export class EnterpriseDataIntegrationService {
       return transformedItem;
     });
   }
-
-  /**
-   * Loads the transformed data into the target data source.
-   * @param dataSource The target data source to load the data into.
-   * @param data The transformed data to be loaded.
-   * @returns A promise that resolves with the load operation status.
-   */
+  
   async loadData(dataSource: DataSource, data: any[]): Promise<boolean> {
     switch (dataSource.type) {
       case "database":
