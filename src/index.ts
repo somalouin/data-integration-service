@@ -35,10 +35,7 @@ export class EnterpriseDataIntegrationService {
     }
   }
 
-  transformData(
-    data: any[],
-    transformationRules: DataTransformationRule[],
-  ): any[] {
+  transformData(data: any[], transformationRules: DataTransformationRule[],): any[] {
     return data.map((item) => {
       const transformedItem: any = { ...item };
       transformationRules.forEach((rule) => {
