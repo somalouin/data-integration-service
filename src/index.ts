@@ -1,3 +1,5 @@
+import axios, { AxiosInstance } from 'axios';
+
 interface DataSource {
   id: string;
   name: string;
@@ -14,10 +16,10 @@ interface DataTransformationRule {
 }
 
 export class EnterpriseDataIntegrationService {
-  private httpClient: any;
+  private httpClient: AxiosInstance;
 
-  constructor() {
-    this.httpClient = this.createHttpClient();
+  constructor(baseURL: string = '') {
+    this.httpClient = this.createHttpClient(baseURL);
   }
 
   async fetchData(dataSource: DataSource): Promise<any[]> {
@@ -62,76 +64,41 @@ export class EnterpriseDataIntegrationService {
   }
 
   private async fetchFromDatabase(dataSource: DataSource): Promise<any[]> {
-    // Implement the logic to fetch data from a database
-    const response = await this.httpClient.get(
-      `/api/data-sources/${dataSource.id}/data`,
-    );
+    const response = await this.httpClient.get(`/api/data-sources/${dataSource.id}/data`);
     return response.data;
   }
 
   private async fetchFromApi(dataSource: DataSource): Promise<any[]> {
-    // Implement the logic to fetch data from an API
-    const response = await this.httpClient.get(
-      dataSource.connectionDetails.url,
-    );
+    const response = await this.httpClient.get(dataSource.connectionDetails.url);
     return response.data;
   }
 
   private async fetchFromFile(dataSource: DataSource): Promise<any[]> {
-    // Implement the logic to fetch data from a file
-    const response = await this.httpClient.get(
-      `/api/data-sources/${dataSource.id}/file`,
-    );
+    const response = await this.httpClient.get(`/api/data-sources/${dataSource.id}/file`);
     return response.data;
   }
 
-  private async loadToDatabase(
-    dataSource: DataSource,
-    data: any[],
-  ): Promise<boolean> {
-    // Implement the logic to load data into a database
-    const response = await this.httpClient.post(
-      `/api/data-sources/${dataSource.id}/data`,
-      data,
-    );
-    return response.success;
+  private async loadToDatabase(dataSource: DataSource, data: any[]): Promise<boolean> {
+    const response = await this.httpClient.post(`/api/data-sources/${dataSource.id}/data`, data);
+    return response.data.success;
   }
 
-  private async loadToApi(
-    dataSource: DataSource,
-    data: any[],
-  ): Promise<boolean> {
-    // Implement the logic to load data into an API
-    const response = await this.httpClient.post(
-      dataSource.connectionDetails.url,
-      data,
-    );
-    return response.success;
+  private async loadToApi(dataSource: DataSource, data: any[]): Promise<boolean> {
+    const response = await this.httpClient.post(dataSource.connectionDetails.url, data);
+    return response.data.success;
   }
 
-  private async loadToFile(
-    dataSource: DataSource,
-    data: any[],
-  ): Promise<boolean> {
-    // Implement the logic to load data into a file
-    const response = await this.httpClient.post(
-      `/api/data-sources/${dataSource.id}/file`,
-      data,
-    );
-    return response.success;
+  private async loadToFile(dataSource: DataSource, data: any[]): Promise<boolean> {
+    const response = await this.httpClient.post(`/api/data-sources/${dataSource.id}/file`, data);
+    return response.data.success;
   }
 
-  private createHttpClient(): any {
-    // Implement the logic to create a simple HTTP client
-    return {
-      get: async (url: string): Promise<any> => {
-        // Implement the GET request logic
-        return { data: [] };
+  private createHttpClient(baseURL: string): AxiosInstance {
+    return axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
       },
-      post: async (url: string, data: any): Promise<any> => {
-        // Implement the POST request logic
-        return { success: true };
-      },
-    };
+    });
   }
 }
