@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import fs from 'fs/promises';
+import { Pool } from 'pg'; // Assuming PostgreSQL for database operations
 
 interface DataSource {
   id: string;
@@ -16,10 +17,12 @@ interface DataTransformationRule {
 }
 
 export class EnterpriseDataIntegrationService {
-  private httpClient: AxiosInstance;
+  private dbPool: Pool;
 
-  constructor(baseURL: string = '') {
-    this.httpClient = this.createHttpClient(baseURL);
+  constructor() {
+    this.dbPool = new Pool({
+      // database connection details
+    });
   }
 
   async fetchData(dataSource: DataSource): Promise<any[]> {
@@ -46,7 +49,7 @@ export class EnterpriseDataIntegrationService {
       return transformedItem;
     });
   }
-  
+
   async loadData(dataSource: DataSource, data: any[]): Promise<boolean> {
     switch (dataSource.type) {
       case "database":
@@ -61,41 +64,49 @@ export class EnterpriseDataIntegrationService {
   }
 
   private async fetchFromDatabase(dataSource: DataSource): Promise<any[]> {
-    const response = await this.httpClient.get(`/api/data-sources/${dataSource.id}/data`);
-    return response.data;
+    const { table, schema = 'public' } = dataSource.connectionDetails;
+    const query = `SELECT * FROM ${schema}.${table}`;
+    const result = await this.dbPool.query(query);
+    return result.rows;
   }
 
   private async fetchFromApi(dataSource: DataSource): Promise<any[]> {
-    const response = await this.httpClient.get(dataSource.connectionDetails.url);
-    return response.data;
+    const response = await fetch(dataSource.connectionDetails.url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
   }
 
   private async fetchFromFile(dataSource: DataSource): Promise<any[]> {
-    const response = await this.httpClient.get(`/api/data-sources/${dataSource.id}/file`);
-    return response.data;
+    const { filePath } = dataSource.connectionDetails;
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data);
   }
 
   private async loadToDatabase(dataSource: DataSource, data: any[]): Promise<boolean> {
-    const response = await this.httpClient.post(`/api/data-sources/${dataSource.id}/data`, data);
-    return response.data.success;
+    const { table, schema = 'public' } = dataSource.connectionDetails;
+    const columns = Object.keys(data[0]).join(', ');
+    const values = data.map(row => `(${Object.values(row).map(v => `'${v}'`).join(', ')})`).join(', ');
+    const query = `INSERT INTO ${schema}.${table} (${columns}) VALUES ${values}`;
+    await this.dbPool.query(query);
+    return true;
   }
 
   private async loadToApi(dataSource: DataSource, data: any[]): Promise<boolean> {
-    const response = await this.httpClient.post(dataSource.connectionDetails.url, data);
-    return response.data.success;
-  }
-
-  private async loadToFile(dataSource: DataSource, data: any[]): Promise<boolean> {
-    const response = await this.httpClient.post(`/api/data-sources/${dataSource.id}/file`, data);
-    return response.data.success;
-  }
-
-  private createHttpClient(baseURL: string): AxiosInstance {
-    return axios.create({
-      baseURL,
+    const response = await fetch(dataSource.connectionDetails.url, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(data),
     });
+    return response.ok;
+  }
+
+  private async loadToFile(dataSource: DataSource, data: any[]): Promise<boolean> {
+    const { filePath } = dataSource.connectionDetails;
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+    return true;
   }
 }
