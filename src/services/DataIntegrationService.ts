@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import { Pool } from 'pg'; // Assuming PostgreSQL for database operations
+import { Pool } from 'pg';
 
 export class DataIntegrationService {
   private dbPool: Pool;
